@@ -1,0 +1,55 @@
+# Core data processing
+numpy==1.25.2        # upgraded — NumPy 1.25.2 is the latest maintenance release. :contentReference[oaicite:1]{index=1}  
+pandas==2.0.3
+geopandas==1.1.1     # upgraded — GeoPandas latest release is 1.1.1. :contentReference[oaicite:3]{index=3}  
+
+# Spatial analysis
+shapely==2.0.5  # pinned to stable macOS version
+pysal==24.7
+libpysal>=4.12.0
+esda>=2.5.1
+splot>=1.1.7
+spreg>=1.4.2
+mgwr>=2.1.2
+mapclassify>=2.6.1
+
+# Visualization
+matplotlib==3.7.3
+seaborn==0.12.2
+altair==5.1.2
+plotly==5.17.0
+folium==0.15.1
+contextily==1.4.0
+
+# Statistical modeling
+scipy==1.11.4
+scikit-learn==1.3.2
+statsmodels==0.14.0
+pymc==5.9.0
+arviz==0.16.1
+
+# Jupyter ecosystem
+jupyter==1.0.0
+jupyterlab==4.0.8
+ipywidgets==8.1.1
+
+# Data acquisition
+requests==2.31.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+census==0.8.20
+us==3.1.1
+
+# File I/O
+openpyxl==3.1.2
+xlrd==2.0.1
+pyarrow==14.0.1
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
+
+# Development tools
+black==23.9.1
+pylint==3.0.2
+pytest==7.4.3
