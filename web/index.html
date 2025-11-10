@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pain & Politics: County-Level Analysis</title>
+    <link href='https://unpkg.com/maplibre-gl@3.6.0/dist/maplibre-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>Pain & Politics</h1>
+            <p>Exploring the correlation between county-level distress metrics and Trump voting patterns</p>
+        </div>
+    </header>
+
+    <!-- Scrollytelling Container -->
+    <main id="scrolly">
+        <!-- Graphic Container (Map + Charts) -->
+        <figure class="sticky-container">
+            <div id="map"></div>
+            <div id="charts-overlay">
+                <div id="scatter-plot"></div>
+                <div id="bar-chart"></div>
+            </div>
+        </figure>
+
+        <!-- Narrative Steps -->
+        <article>
+            <div class="step" data-step="intro">
+                <div class="step-content">
+                    <h2>Setting the Context</h2>
+                    <p>Research has shown correlations between place-level distress—including overdose rates,
+                    "deaths of despair," and stalled life expectancy—and support for Trump in 2016 and 2020.</p>
+                    <p>This analysis explores these patterns at the county level using exploratory spatial data analysis (ESDA).</p>
+                </div>
+            </div>
+
+            <div class="step" data-step="distress-map">
+                <div class="step-content">
+                    <h2>Mapping Physical Distress</h2>
+                    <p>The CDC PLACES dataset provides modeled estimates of the percentage of adults reporting
+                    frequent physical distress (≥14 days of poor physical health per month).</p>
+                    <p>Notice the geographic clustering in Appalachia, the rural South, and parts of the Southwest.</p>
+                </div>
+            </div>
+
+            <div class="step" data-step="trump-2016">
+                <div class="step-content">
+                    <h2>Trump Vote Share 2016</h2>
+                    <p>Trump's 2016 electoral success was particularly strong in rural counties and regions
+                    experiencing economic transition.</p>
+                    <p>Compare this pattern with the physical distress map—do you see overlaps?</p>
+                </div>
+            </div>
+
+            <div class="step" data-step="bivariate">
+                <div class="step-content">
+                    <h2>Bivariate Relationship</h2>
+                    <p>Using bivariate LISA analysis, we can identify statistically significant spatial clusters
+                    where high pain and high Trump support co-locate.</p>
+                    <ul>
+                        <li><span class="legend-hh">Red (HH)</span>: High distress, high Trump support</li>
+                        <li><span class="legend-ll">Blue (LL)</span>: Low distress, low Trump support</li>
+                        <li><span class="legend-hl">Pink (HL)</span>: High distress, low Trump support</li>
+                        <li><span class="legend-lh">Light Blue (LH)</span>: Low distress, high Trump support</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step" data-step="overdose">
+                <div class="step-content">
+                    <h2>The Overdose Crisis</h2>
+                    <p>Drug overdose mortality rates provide another lens on community distress.</p>
+                    <p>Counties with the highest overdose rates often—but not always—overlap with Trump strongholds.</p>
+                </div>
+            </div>
+
+            <div class="step" data-step="hotspots">
+                <div class="step-content">
+                    <h2>Hot Spot Analysis</h2>
+                    <p>Getis-Ord Gi* analysis identifies statistically significant spatial clusters of high (hot spots)
+                    and low (cold spots) values.</p>
+                    <p>Hot spots of physical distress concentrate in specific regions, revealing geographic patterns
+                    of health disparities.</p>
+                </div>
+            </div>
+
+            <div class="step" data-step="model-results">
+                <div class="step-content">
+                    <h2>Model Results</h2>
+                    <p>After controlling for rurality, education, income, and demographics, the association between
+                    pain metrics and Trump support remains statistically significant but modest.</p>
+                    <p>Spatial models reveal strong geographic clustering, suggesting that local context matters.</p>
+                </div>
+            </div>
+
+            <div class="step" data-step="caveats">
+                <div class="step-content">
+                    <h2>Important Caveats</h2>
+                    <ul>
+                        <li><strong>Ecological Fallacy:</strong> County-level patterns don't imply individual behavior</li>
+                        <li><strong>Association ≠ Causation:</strong> These are correlations, not causal relationships</li>
+                        <li><strong>Data Limitations:</strong> Some estimates are modeled; small counties may be suppressed</li>
+                        <li><strong>Complex Factors:</strong> Many unmeasured variables influence voting patterns</li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <!-- Legend -->
+    <div id="legend" class="legend">
+        <h3>Legend</h3>
+        <div id="legend-content"></div>
+    </div>
+
+    <!-- Info Card -->
+    <div id="info-card" class="info-card hidden">
+        <button class="close-btn" onclick="closeInfoCard()">×</button>
+        <h3 id="county-name"></h3>
+        <div id="county-stats"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
