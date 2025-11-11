@@ -215,26 +215,38 @@ try:
 except Exception as e:
     print(f"   ⚠️  Could not simplify: {e}")
 
-# Round numeric columns (exclude categorical integers)
-numeric_cols = web_gdf.select_dtypes(include=[np.number]).columns
-# Exclude categorical integer fields from rounding (they should remain integers)
+# Convert categorical integers to integers BEFORE rounding (prevents any rounding)
 categorical_int_cols = ['rucc', 'rural']  # fips is string, not numeric
-cols_to_round = [c for c in numeric_cols if c not in categorical_int_cols]
-web_gdf[cols_to_round] = web_gdf[cols_to_round].round(2)
-
-# Ensure categorical integers remain integers (not floats from previous operations)
+print("\n8. Preserving categorical integers...")
 for cat_col in categorical_int_cols:
     if cat_col in web_gdf.columns:
+        # Convert to integer type (handles NaN with nullable Int64)
         if web_gdf[cat_col].dtype in [np.float64, np.float32]:
-            # Convert to nullable integer (handles NaN)
             web_gdf[cat_col] = web_gdf[cat_col].astype('Int64')
-        elif pd.api.types.is_integer_dtype(web_gdf[cat_col]):
-            # Already integer, ensure it stays that way
-            pass
+            print(f"   ✅ Converted {cat_col} to integer")
+        elif not pd.api.types.is_integer_dtype(web_gdf[cat_col]):
+            # If somehow not numeric, try to convert
+            try:
+                web_gdf[cat_col] = pd.to_numeric(web_gdf[cat_col], errors='coerce').astype('Int64')
+                print(f"   ✅ Converted {cat_col} to integer")
+            except:
+                print(f"   ⚠️  Could not convert {cat_col} to integer")
+
+# Round numeric columns (exclude categorical integers and all integer types)
+print("\n9. Rounding continuous numeric columns...")
+# Only round float columns, never integer columns (including Int64)
+float_cols = web_gdf.select_dtypes(include=[np.float64, np.float32]).columns
+# Also exclude categorical integer fields by name (double safety)
+cols_to_round = [c for c in float_cols if c not in categorical_int_cols]
+if cols_to_round:
+    web_gdf[cols_to_round] = web_gdf[cols_to_round].round(2)
+    print(f"   ✅ Rounded {len(cols_to_round)} float columns")
+else:
+    print("   ⚠️  No float columns to round")
 
 # Export
 output_path = web_assets / "counties_esda.geojson"
-print(f"\n8. Exporting to {output_path}...")
+print(f"\n10. Exporting to {output_path}...")
 web_gdf.to_file(output_path, driver='GeoJSON')
 file_size_mb = output_path.stat().st_size / (1024 * 1024)
 print(f"   ✅ Exported {len(web_gdf)} counties ({file_size_mb:.1f} MB)")

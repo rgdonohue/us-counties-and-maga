@@ -148,19 +148,27 @@ function computeDataStatistics() {
         .filter(v => v !== null && v !== undefined && !isNaN(v));
     
     // Compute quantiles for continuous variables
+    // d3.quantile takes sorted array and single probability, so map over probabilities
+    const probabilities = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+    
+    const computeQuantiles = (field) => {
+        const sortedValues = getValues(field).sort(d3.ascending);
+        return probabilities.map(p => d3.quantile(sortedValues, p));
+    };
+    
     dataStats.distress = {
         values: getValues('freq_phys_distress_pct'),
-        quantiles: d3.quantile(getValues('freq_phys_distress_pct').sort(d3.ascending), [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        quantiles: computeQuantiles('freq_phys_distress_pct')
     };
     
     dataStats.trump2016 = {
         values: getValues('trump_share_2016'),
-        quantiles: d3.quantile(getValues('trump_share_2016').sort(d3.ascending), [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        quantiles: computeQuantiles('trump_share_2016')
     };
     
     dataStats.overdose = {
         values: getValues('od_1316_rate'),
-        quantiles: d3.quantile(getValues('od_1316_rate').sort(d3.ascending), [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        quantiles: computeQuantiles('od_1316_rate')
     };
     
     console.log('Data statistics computed:', dataStats);
@@ -590,17 +598,19 @@ function showLegend(title, colors, breaks) {
             colorBox.style.backgroundColor = color;
 
             const label = document.createElement('span');
+            // Format numbers appropriately (defined outside if/else)
+            const formatNum = (n) => {
+                if (n === null || n === undefined || isNaN(n)) return 'N/A';
+                if (n >= 100) return Math.round(n).toString();
+                if (n >= 10) return n.toFixed(1);
+                return n.toFixed(2);
+            };
+            
             if (i < breaks.length) {
                 const currentBreak = breaks[i];
                 const nextBreak = breaks[i + 1];
                 
                 if (nextBreak !== undefined) {
-                    // Format numbers appropriately
-                    const formatNum = (n) => {
-                        if (n >= 100) return Math.round(n);
-                        if (n >= 10) return n.toFixed(1);
-                        return n.toFixed(2);
-                    };
                     label.textContent = `${formatNum(currentBreak)} - ${formatNum(nextBreak)}`;
                 } else {
                     label.textContent = `${formatNum(currentBreak)}+`;
