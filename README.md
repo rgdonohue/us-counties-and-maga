@@ -1,5 +1,7 @@
 # Pain & Politics: County-Level Spatial Analysis
 
+![US Counties & MAGA](pain-maga.png)
+
 Exploring how community distress metrics (overdose mortality, physical pain, life expectancy) align with Trump vote share in 2016 and 2020. The repository now ships with a production-ready Python package (`pain_politics`), a command-line interface, and a synthetic sample dataset so the full pipeline can be exercised before the real data downloads are in place.
 
 ## At a Glance
@@ -12,6 +14,35 @@ Exploring how community distress metrics (overdose mortality, physical pain, lif
 - **Tests & sample data**: Pytest suite exercises the synthetic pipeline to guard against regressions.
 
 - **County Health Rankings integration**: pulls 2016 & 2024 releases, adds 2024-2016 change columns for drug overdoses and poor health days.
+
+## Key Findings from Spatial Analysis
+
+Our exploratory spatial data analysis (ESDA) reveals significant geographic clustering in both community distress and Trump voting patterns:
+
+<div align="center">
+
+### Bivariate Spatial Relationship: Distress × Trump Support
+
+<img src="reports/figures/bivariate_lisa_freq_phys_distress_pct_trump_share_2016.png" width="600" alt="Bivariate LISA: Physical Distress and Trump Support">
+
+*Red (HH) clusters show counties with high physical distress **and** high Trump support, concentrated in Appalachia and parts of the rural South. Blue (LL) clusters indicate low distress, low Trump support.*
+
+### Local Spatial Patterns (LISA Clusters)
+
+<img src="reports/figures/lisa_cluster_trump_share_2016.png" width="400" alt="LISA: Trump 2016 Support">
+<img src="reports/figures/lisa_cluster_freq_phys_distress_pct.png" width="400" alt="LISA: Physical Distress">
+
+*Local Indicators of Spatial Association reveal statistically significant hot spots (HH) and cold spots (LL) for both variables.*
+
+### Hot Spot Analysis (Getis-Ord Gi*)
+
+<img src="reports/figures/hotspot_trump_share_2016.png" width="600" alt="Hot Spots: Trump Support">
+
+*Hot spot analysis identifies regions where Trump support is significantly higher than expected, accounting for spatial autocorrelation.*
+
+</div>
+
+**Global Moran's I** indicates strong positive spatial autocorrelation (I ≈ 0.43-0.65) for both distress metrics and Trump support, confirming that "place matters"—neighboring counties exhibit similar patterns.
 
 ## Quickstart (Synthetic Data)
 
