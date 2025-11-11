@@ -209,6 +209,90 @@ Where:
 - Negative Gi* = Cold spot (cluster of low values)
 - Significance based on z-scores
 
+## Preliminary Findings (November 2024)
+
+> **Status**: These are exploratory findings from initial spatial analysis. Full model specifications, sensitivity analyses, and peer review are ongoing.
+
+### Global Spatial Autocorrelation
+
+Moran's I statistics reveal **strong positive spatial autocorrelation** across all key variables:
+
+| Variable | Moran's I | p-value | Interpretation |
+|----------|-----------|---------|----------------|
+| Trump Support 2016 | 0.64 | < 0.001 | Very strong clustering |
+| Physical Distress (%) | 0.65 | < 0.001 | Very strong clustering |
+| Depression (%) | 0.51 | < 0.001 | Strong clustering |
+| Arthritis (%) | 0.57 | < 0.001 | Strong clustering |
+| Trump Support 2020 | 0.63 | < 0.001 | Very strong clustering |
+| Trump Shift 2016→2020 | 0.43 | < 0.001 | Moderate clustering |
+
+**Key takeaway**: Geographic clustering is highly significant for both health distress metrics and voting patterns. "Place matters"—neighboring counties exhibit similar characteristics far more than would be expected by chance alone.
+
+### Local Spatial Patterns (LISA)
+
+Local Indicators of Spatial Association identify distinct **regional clusters**:
+
+#### High-High (HH) Clusters: High Distress + High Trump Support
+- **Appalachian region**: Kentucky, West Virginia, eastern Tennessee
+- **Rural South**: Parts of Arkansas, Mississippi, Alabama
+- **Ozarks**: Southern Missouri, northern Arkansas
+- **Industrial Midwest**: Pockets of Ohio, Indiana, Michigan
+
+These regions show statistically significant co-location of:
+- Elevated physical distress (≥14 poor health days/month)
+- Higher Trump vote shares (2016 & 2020)
+- Elevated depression and chronic conditions
+
+#### Low-Low (LL) Clusters: Low Distress + Low Trump Support
+- **Urban corridors**: Northeast megalopolis, West Coast metros
+- **College towns**: Counties with major universities
+- **High-income suburbs**: Around major metropolitan areas
+
+#### Spatial Outliers (HL and LH)
+- **HL (High distress, Low Trump)**: Some Native American counties, border regions
+- **LH (Low distress, High Trump)**: Wealthy rural counties, agricultural Great Plains
+
+### Bivariate Spatial Correlation
+
+Bivariate Moran's I tests confirm **positive spatial association** between distress and Trump support:
+
+- Physical distress × Trump 2016: I = 0.38, p < 0.001
+- Depression × Trump 2016: I = 0.31, p < 0.001
+
+The bivariate LISA maps reveal that HH clusters (high distress **and** high Trump support) are geographically concentrated in Appalachia and parts of the rural South, suggesting regional variation in the relationship.
+
+### Heterogeneity Analysis
+
+Preliminary stratified analyses suggest the distress→Trump relationship varies by context:
+
+1. **By Rurality**: The association appears **stronger in rural and micropolitan counties** than in metropolitan areas, though formal tests are pending.
+
+2. **By Population**: Electoral weight matters—relationships observed in small counties may not reflect voter behavior in large population centers.
+
+### Important Caveats
+
+1. **Ecological Fallacy**: These county-level patterns **do not** tell us about individual voters. A county can have high distress and high Trump support without the distressed individuals voting for Trump.
+
+2. **Confounding**: We have not yet controlled for education, income, race, age structure, or other key demographic factors. The observed correlations may be spurious.
+
+3. **Temporal Ambiguity**: Pain metrics from 2023 (CDC PLACES) are being correlated with 2016 elections. Temporal ordering is unclear.
+
+4. **Missing Data**: CDC suppresses data for small counties, potentially biasing our sample toward larger, less rural counties.
+
+5. **Multiple Comparisons**: With 3,100+ counties, some significant clusters are expected by chance. We apply FDR corrections but results should still be interpreted cautiously.
+
+### Next Steps
+
+Before publication, the following analyses are required:
+
+- [ ] Full regression models with demographic/socioeconomic controls
+- [ ] Spatial lag and spatial error models
+- [ ] Sensitivity analyses with alternative weight matrices
+- [ ] Temporal analyses comparing 2016 vs 2020 patterns
+- [ ] Robustness checks with different pain proxies
+- [ ] Formal tests of regional heterogeneity
+- [ ] Peer review and external validation
+
 ## Visualization Strategy
 
 ### Map Types

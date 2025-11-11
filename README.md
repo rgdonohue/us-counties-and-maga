@@ -49,7 +49,7 @@ Our exploratory spatial data analysis (ESDA) reveals significant geographic clus
 
 **Key Takeaway**: The data show strong positive spatial autocorrelation (Moran's I ≈ 0.43-0.65) for both distress metrics and Trump support, with compelling visual evidence of co-location in Appalachian and rural Southern counties. These patterns are statistically significant and geographically clustered—"place matters" in understanding both community health and voting behavior.
 
-> **Note**: While these correlations are striking, they represent preliminary exploratory findings. Formal regression models with demographic controls, sensitivity analyses, and peer review are necessary before drawing causal inferences.
+> **Note**: While these correlations are striking, they represent preliminary exploratory findings. Formal regression models with demographic controls, sensitivity analyses, and peer review are necessary before drawing causal inferences. **See the [full methodology document](docs/METHODOLOGY.md) for detailed findings, caveats, and next steps.**
 
 ## Quickstart (Synthetic Data)
 
@@ -149,9 +149,24 @@ npm run tiles      # requires tippecanoe & pmtiles binaries
 
 Legends, step labels, and chart placeholders are wired up; once the real data exports exist you can bind them directly in `web/src/main.js`.
 
-## Methodology & Framing
+## Methodology & Documentation
 
-- Detailed methodology, statistical design, and ethical guardrails: `docs/METHODOLOGY.md`.
-- Implementation notes, pipeline contract, and QA checklist: `docs/DEVELOPER_NOTES.md`.
+### Full Methodology Documentation
+
+📖 **[Read the complete methodology document](docs/METHODOLOGY.md)** for:
+
+- Research design and questions
+- Data collection and variable construction
+- Statistical methods (ESDA, spatial models)
+- **Preliminary findings** (Moran's I, LISA, bivariate analysis)
+- Limitations and caveats
+- Ethical considerations
+- Next steps before publication
+
+### Developer Documentation
+
+- Implementation notes, pipeline contract, and QA checklist: [`docs/DEVELOPER_NOTES.md`](docs/DEVELOPER_NOTES.md)
+
+### Important Reminders
 
 When presenting findings, keep ecological inference caveats front and center: these are county-level associations, not statements about individuals, and many structural confounders remain.
