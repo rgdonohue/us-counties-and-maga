@@ -123,11 +123,11 @@ The pipeline merges shapefiles, elections, CDC WONDER, CDC PLACES, RUCC, and ACS
 
 | Notebook | Purpose |
 | -------- | ------- |
-| `01_data_acquisition.ipynb` | Guided download/API scripts, mirrors the CLI. |
-| `02_data_processing.ipynb` | Calls into `pain_politics.pipeline` for merges and QA. |
-| `03_esda_spatial_analysis.ipynb` | Moran's I, LISA, hot-spot analysis using GeoDataFrame from pipeline. |
-| `04_spatial_models.ipynb` | Imports `SpatialRegressionSuite` to compare OLS vs. spatial lag/error. |
-| `05_export_for_web.ipynb` | Simplifies geometry, exports GeoJSON/PMTiles, pushes derived stats to the web app. |
+| [`01_data_acquisition.ipynb`](notebooks/01_data_acquisition.ipynb) | Guided download/API scripts, mirrors the CLI. |
+| [`02_data_processing.ipynb`](notebooks/02_data_processing.ipynb) | Calls into `pain_politics.pipeline` for merges and QA. |
+| [`03_esda_spatial_analysis.ipynb`](notebooks/03_esda_spatial_analysis.ipynb) | Moran's I, LISA, hot-spot analysis using GeoDataFrame from pipeline. |
+| [`04_spatial_models.ipynb`](notebooks/04_spatial_models.ipynb) | Imports `SpatialRegressionSuite` to compare OLS vs. spatial lag/error. |
+| [`05_export_for_web.ipynb`](notebooks/05_export_for_web.ipynb) | Simplifies geometry, exports GeoJSON/PMTiles, pushes derived stats to the web app. |
 
 The notebooks now lean on the shared package instead of duplicating logic, keeping business rules in one place.
 
