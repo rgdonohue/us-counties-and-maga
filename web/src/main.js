@@ -45,9 +45,68 @@ let scroller;
 // Initialize the application
 async function init() {
     await loadData();
-    initMap();
-    initScrollama();
-    setupEventHandlers();
+    if (countyData && countyData.features) {
+        initMap();
+        initScrollama();
+        setupEventHandlers();
+    } else {
+        console.error('Failed to load data, cannot initialize map');
+    }
+}
+
+// Data validation and schema checking
+function validateDataSchema(data) {
+    const warnings = [];
+    const errors = [];
+    
+    if (!data || !data.features || data.features.length === 0) {
+        errors.push('GeoJSON has no features');
+        return { valid: false, errors, warnings };
+    }
+    
+    // Check required fields
+    const requiredFields = ['fips', 'NAME'];
+    const sampleFeature = data.features[0];
+    
+    requiredFields.forEach(field => {
+        if (!(field in sampleFeature.properties)) {
+            errors.push(`Missing required field: ${field}`);
+        }
+    });
+    
+    // Check expected fields (warn if missing)
+    const expectedFields = {
+        'trump_share_2016': 'Electoral data',
+        'freq_phys_distress_pct': 'Distress metrics',
+        'bv_cluster': 'Bivariate LISA',
+        'trump_share_2016_hotspot_conf': 'Hot spot analysis'
+    };
+    
+    Object.entries(expectedFields).forEach(([field, category]) => {
+        if (!(field in sampleFeature.properties)) {
+            warnings.push(`Missing ${category} field: ${field} (visualization may be limited)`);
+        }
+    });
+    
+    // Validate bivariate cluster values
+    if ('bv_cluster' in sampleFeature.properties) {
+        const validBvValues = ['HH', 'HL', 'LH', 'LL', 'Not Significant'];
+        const bvValues = new Set(data.features
+            .map(f => f.properties.bv_cluster)
+            .filter(v => v !== null && v !== undefined));
+        
+        bvValues.forEach(val => {
+            if (!validBvValues.includes(val)) {
+                warnings.push(`Unexpected bv_cluster value: "${val}"`);
+            }
+        });
+    }
+    
+    return {
+        valid: errors.length === 0,
+        errors,
+        warnings
+    };
 }
 
 // Load data
@@ -56,9 +115,55 @@ async function loadData() {
         const response = await fetch(CONFIG.dataUrl);
         countyData = await response.json();
         console.log('Data loaded:', countyData.features.length, 'counties');
+        
+        // Validate schema
+        const validation = validateDataSchema(countyData);
+        if (!validation.valid) {
+            console.error('Data validation errors:', validation.errors);
+            alert('Data validation failed. Check console for details.');
+            return;
+        }
+        
+        if (validation.warnings.length > 0) {
+            console.warn('Data validation warnings:', validation.warnings);
+        }
+        
+        // Store data statistics for data-driven breaks
+        computeDataStatistics();
     } catch (error) {
         console.error('Error loading data:', error);
+        alert('Failed to load data. Check console for details.');
     }
+}
+
+// Compute data-driven statistics for breaks/legends
+let dataStats = {};
+
+function computeDataStatistics() {
+    const features = countyData.features;
+    
+    // Helper to extract non-null values
+    const getValues = (field) => features
+        .map(f => f.properties[field])
+        .filter(v => v !== null && v !== undefined && !isNaN(v));
+    
+    // Compute quantiles for continuous variables
+    dataStats.distress = {
+        values: getValues('freq_phys_distress_pct'),
+        quantiles: d3.quantile(getValues('freq_phys_distress_pct').sort(d3.ascending), [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    };
+    
+    dataStats.trump2016 = {
+        values: getValues('trump_share_2016'),
+        quantiles: d3.quantile(getValues('trump_share_2016').sort(d3.ascending), [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    };
+    
+    dataStats.overdose = {
+        values: getValues('od_1316_rate'),
+        quantiles: d3.quantile(getValues('od_1316_rate').sort(d3.ascending), [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    };
+    
+    console.log('Data statistics computed:', dataStats);
 }
 
 // Initialize map
@@ -84,6 +189,12 @@ function initMap() {
 
 // Add data layers to map
 function addDataLayers() {
+    // Ensure data is loaded
+    if (!countyData || !countyData.features) {
+        console.error('County data not loaded, cannot add layers');
+        return;
+    }
+    
     // Add county data source
     map.addSource('counties', {
         type: 'geojson',
@@ -130,12 +241,14 @@ function addDataLayers() {
 function setupMapInteractions() {
     // Hover effect
     map.on('mousemove', 'counties-fill', (e) => {
-        if (e.features.length > 0) {
-            map.getCanvas().style.cursor = 'pointer';
-
-            // Highlight county
-            map.setFilter('counties-highlight', ['==', 'fips', e.features[0].properties.fips]);
-            map.setPaintProperty('counties-highlight', 'line-opacity', 1);
+        if (e.features.length > 0 && e.features[0].properties) {
+            const props = e.features[0].properties;
+            // Only highlight if FIPS exists
+            if (props.fips) {
+                map.getCanvas().style.cursor = 'pointer';
+                map.setFilter('counties-highlight', ['==', 'fips', props.fips]);
+                map.setPaintProperty('counties-highlight', 'line-opacity', 1);
+            }
         }
     });
 
@@ -146,7 +259,7 @@ function setupMapInteractions() {
 
     // Click to show info card
     map.on('click', 'counties-fill', (e) => {
-        if (e.features.length > 0) {
+        if (e.features.length > 0 && e.features[0].properties) {
             showInfoCard(e.features[0].properties);
         }
     });
@@ -234,88 +347,189 @@ function showIntro() {
 }
 
 function showDistressMap() {
-    // Update map to show physical distress
-    const colorScale = d3.scaleQuantile()
-        .domain(countyData.features.map(d => d.properties.freq_phys_distress_pct))
-        .range(CONFIG.colors.distress);
-
+    // Check if field exists
+    if (!dataStats.distress || dataStats.distress.values.length === 0) {
+        console.warn('freq_phys_distress_pct not available, using fallback');
+        map.setPaintProperty('counties-fill', 'fill-color', '#cccccc');
+        map.setPaintProperty('counties-fill', 'fill-opacity', 0.3);
+        return;
+    }
+    
+    // Use data-driven quantiles
+    const q = dataStats.distress.quantiles;
+    const breaks = [q[0], q[1], q[2], q[3], q[4], q[5]];
+    
+    // Create color stops using quantiles
     map.setPaintProperty('counties-fill', 'fill-color', [
         'interpolate',
         ['linear'],
         ['get', 'freq_phys_distress_pct'],
-        10, CONFIG.colors.distress[0],
-        15, CONFIG.colors.distress[2],
-        20, CONFIG.colors.distress[4],
-        25, CONFIG.colors.distress[6],
-        30, CONFIG.colors.distress[7]
+        breaks[0], CONFIG.colors.distress[0],
+        breaks[1], CONFIG.colors.distress[2],
+        breaks[2], CONFIG.colors.distress[4],
+        breaks[3], CONFIG.colors.distress[5],
+        breaks[4], CONFIG.colors.distress[6],
+        breaks[5], CONFIG.colors.distress[7]
     ]);
-    map.setPaintProperty('counties-fill', 'fill-opacity', 0.8);
+    
+    // Handle null values with neutral color
+    map.setPaintProperty('counties-fill', 'fill-opacity', [
+        'case',
+        ['has', 'freq_phys_distress_pct'],
+        0.8,
+        0.3  // Lower opacity for null counties
+    ]);
 
-    showLegend('Frequent Physical Distress (%)', CONFIG.colors.distress, [10, 15, 20, 25, 30]);
+    showLegend('Frequent Physical Distress (%)', CONFIG.colors.distress, breaks);
 }
 
 function showTrumpMap2016() {
-    // Update map to show Trump 2016 vote share
+    // Check if field exists
+    if (!dataStats.trump2016 || dataStats.trump2016.values.length === 0) {
+        console.warn('trump_share_2016 not available, using fallback');
+        map.setPaintProperty('counties-fill', 'fill-color', '#cccccc');
+        map.setPaintProperty('counties-fill', 'fill-opacity', 0.3);
+        return;
+    }
+    
+    // Use data-driven quantiles
+    const q = dataStats.trump2016.quantiles;
+    const breaks = [q[0], q[1], q[2], q[3], q[4], q[5]];
+    
+    // Create color stops using quantiles
     map.setPaintProperty('counties-fill', 'fill-color', [
         'interpolate',
         ['linear'],
         ['get', 'trump_share_2016'],
-        20, CONFIG.colors.trump[0],
-        40, CONFIG.colors.trump[1],
-        50, CONFIG.colors.trump[2],
-        60, CONFIG.colors.trump[3],
-        80, CONFIG.colors.trump[4]
+        breaks[0], CONFIG.colors.trump[0],
+        breaks[1], CONFIG.colors.trump[1],
+        breaks[2], CONFIG.colors.trump[2],
+        breaks[3], CONFIG.colors.trump[3],
+        breaks[4], CONFIG.colors.trump[4]
     ]);
-    map.setPaintProperty('counties-fill', 'fill-opacity', 0.8);
+    
+    // Handle null values
+    map.setPaintProperty('counties-fill', 'fill-opacity', [
+        'case',
+        ['has', 'trump_share_2016'],
+        0.8,
+        0.3
+    ]);
 
-    showLegend('Trump Vote Share 2016 (%)', CONFIG.colors.trump, [20, 40, 50, 60, 80]);
+    showLegend('Trump Vote Share 2016 (%)', CONFIG.colors.trump, breaks);
 }
 
 function showBivariateAnalysis() {
-    // Show bivariate LISA clusters
-    const bivariateExpression = ['match', ['get', 'bv_cluster']];
-
-    for (const [cluster, color] of Object.entries(CONFIG.colors.bivariate)) {
-        bivariateExpression.push(cluster, color);
+    // Check if bv_cluster field exists
+    const sampleFeature = countyData.features.find(f => f.properties.bv_cluster);
+    if (!sampleFeature) {
+        console.warn('bv_cluster not available, using fallback');
+        map.setPaintProperty('counties-fill', 'fill-color', '#cccccc');
+        map.setPaintProperty('counties-fill', 'fill-opacity', 0.3);
+        hideLegend();
+        return;
     }
-    bivariateExpression.push('#cccccc'); // default
+    
+    // Show bivariate LISA clusters with null handling
+    const bivariateExpression = [
+        'case',
+        ['has', 'bv_cluster'],
+        ['match', ['get', 'bv_cluster'],
+            'HH', CONFIG.colors.bivariate.HH,
+            'HL', CONFIG.colors.bivariate.HL,
+            'LH', CONFIG.colors.bivariate.LH,
+            'LL', CONFIG.colors.bivariate.LL,
+            'Not Significant', CONFIG.colors.bivariate['Not Significant'],
+            '#cccccc'  // fallback for unexpected values
+        ],
+        '#e0e0e0'  // null values (lighter gray)
+    ];
 
     map.setPaintProperty('counties-fill', 'fill-color', bivariateExpression);
-    map.setPaintProperty('counties-fill', 'fill-opacity', 0.9);
+    map.setPaintProperty('counties-fill', 'fill-opacity', [
+        'case',
+        ['has', 'bv_cluster'],
+        0.9,
+        0.3  // Lower opacity for null counties
+    ]);
 
     showBivariateLegend();
     showScatterPlot();
 }
 
 function showOverdoseMap() {
-    // Update map to show overdose rates
+    // Check if field exists
+    if (!dataStats.overdose || dataStats.overdose.values.length === 0) {
+        console.warn('od_1316_rate not available, using fallback');
+        map.setPaintProperty('counties-fill', 'fill-color', '#cccccc');
+        map.setPaintProperty('counties-fill', 'fill-opacity', 0.3);
+        return;
+    }
+    
+    // Use data-driven quantiles
+    const q = dataStats.overdose.quantiles;
+    const breaks = [q[0], q[1], q[2], q[3], q[4], q[5]];
+    const colors = ['#fee5d9', '#fcbba1', '#fc9272', '#fb6a4a', '#de2d26', '#a50f15'];
+    
+    // Create color stops using quantiles
     map.setPaintProperty('counties-fill', 'fill-color', [
         'interpolate',
         ['linear'],
         ['get', 'od_1316_rate'],
-        0, '#fee5d9',
-        10, '#fcbba1',
-        20, '#fc9272',
-        30, '#fb6a4a',
-        40, '#de2d26',
-        50, '#a50f15'
+        breaks[0], colors[0],
+        breaks[1], colors[1],
+        breaks[2], colors[2],
+        breaks[3], colors[3],
+        breaks[4], colors[4],
+        breaks[5], colors[5]
     ]);
-    map.setPaintProperty('counties-fill', 'fill-opacity', 0.8);
+    
+    // Handle null values
+    map.setPaintProperty('counties-fill', 'fill-opacity', [
+        'case',
+        ['has', 'od_1316_rate'],
+        0.8,
+        0.3
+    ]);
 
-    showLegend('Overdose Rate (per 100k)', ['#fee5d9', '#fc9272', '#fb6a4a', '#a50f15'], [0, 20, 40, 60]);
+    showLegend('Overdose Rate (per 100k)', colors, breaks);
 }
 
 function showHotspots() {
-    // Show hot spot analysis results
-    const hotspotExpression = ['match', ['get', 'trump_share_2016_hotspot_conf']];
-
-    for (const [category, color] of Object.entries(CONFIG.colors.hotspot)) {
-        hotspotExpression.push(category, color);
+    // Check if hotspot field exists
+    const sampleFeature = countyData.features.find(f => f.properties.trump_share_2016_hotspot_conf);
+    if (!sampleFeature) {
+        console.warn('trump_share_2016_hotspot_conf not available, using fallback');
+        map.setPaintProperty('counties-fill', 'fill-color', '#cccccc');
+        map.setPaintProperty('counties-fill', 'fill-opacity', 0.3);
+        hideLegend();
+        return;
     }
-    hotspotExpression.push('#cccccc'); // default
+    
+    // Show hot spot analysis results with null handling
+    const hotspotExpression = [
+        'case',
+        ['has', 'trump_share_2016_hotspot_conf'],
+        ['match', ['get', 'trump_share_2016_hotspot_conf'],
+            'Hot Spot - 99% Conf', CONFIG.colors.hotspot['Hot Spot - 99% Conf'],
+            'Hot Spot - 95% Conf', CONFIG.colors.hotspot['Hot Spot - 95% Conf'],
+            'Hot Spot - 90% Conf', CONFIG.colors.hotspot['Hot Spot - 90% Conf'],
+            'Cold Spot - 90% Conf', CONFIG.colors.hotspot['Cold Spot - 90% Conf'],
+            'Cold Spot - 95% Conf', CONFIG.colors.hotspot['Cold Spot - 95% Conf'],
+            'Cold Spot - 99% Conf', CONFIG.colors.hotspot['Cold Spot - 99% Conf'],
+            'Not Significant', CONFIG.colors.hotspot['Not Significant'],
+            '#cccccc'  // fallback for unexpected values
+        ],
+        '#e0e0e0'  // null values
+    ];
 
     map.setPaintProperty('counties-fill', 'fill-color', hotspotExpression);
-    map.setPaintProperty('counties-fill', 'fill-opacity', 0.9);
+    map.setPaintProperty('counties-fill', 'fill-opacity', [
+        'case',
+        ['has', 'trump_share_2016_hotspot_conf'],
+        0.9,
+        0.3
+    ]);
 
     showHotspotLegend();
 }
@@ -340,23 +554,66 @@ function showLegend(title, colors, breaks) {
 
     content.innerHTML = '';
 
-    colors.forEach((color, i) => {
-        const item = document.createElement('div');
-        item.className = 'legend-item';
+    // Add title
+    const titleEl = document.createElement('h3');
+    titleEl.textContent = title;
+    titleEl.style.marginTop = '0';
+    titleEl.style.marginBottom = '10px';
+    content.appendChild(titleEl);
 
-        const colorBox = document.createElement('div');
-        colorBox.className = 'legend-color';
-        colorBox.style.backgroundColor = color;
+    // Handle data-driven breaks
+    if (!breaks || breaks.length === 0) {
+        // Fallback: use color index as label
+        colors.forEach((color, i) => {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
 
-        const label = document.createElement('span');
-        if (breaks && breaks[i] !== undefined) {
-            label.textContent = breaks[i] + (breaks[i + 1] ? '-' + breaks[i + 1] : '+');
-        }
+            const colorBox = document.createElement('div');
+            colorBox.className = 'legend-color';
+            colorBox.style.backgroundColor = color;
 
-        item.appendChild(colorBox);
-        item.appendChild(label);
-        content.appendChild(item);
-    });
+            const label = document.createElement('span');
+            label.textContent = `Category ${i + 1}`;
+
+            item.appendChild(colorBox);
+            item.appendChild(label);
+            content.appendChild(item);
+        });
+    } else {
+        // Create legend items with break labels
+        colors.forEach((color, i) => {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+
+            const colorBox = document.createElement('div');
+            colorBox.className = 'legend-color';
+            colorBox.style.backgroundColor = color;
+
+            const label = document.createElement('span');
+            if (i < breaks.length) {
+                const currentBreak = breaks[i];
+                const nextBreak = breaks[i + 1];
+                
+                if (nextBreak !== undefined) {
+                    // Format numbers appropriately
+                    const formatNum = (n) => {
+                        if (n >= 100) return Math.round(n);
+                        if (n >= 10) return n.toFixed(1);
+                        return n.toFixed(2);
+                    };
+                    label.textContent = `${formatNum(currentBreak)} - ${formatNum(nextBreak)}`;
+                } else {
+                    label.textContent = `${formatNum(currentBreak)}+`;
+                }
+            } else {
+                label.textContent = `Category ${i + 1}`;
+            }
+
+            item.appendChild(colorBox);
+            item.appendChild(label);
+            content.appendChild(item);
+        });
+    }
 
     legend.style.display = 'block';
 }
@@ -437,29 +694,74 @@ function showCoefficientsChart() {
         .text('Model Coefficients');
 }
 
+// Helper function to format values with null handling
+function formatValue(value, format = 'number', decimals = 1) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return 'Data suppressed';
+    }
+    
+    if (format === 'percent') {
+        return value.toFixed(decimals) + '%';
+    } else if (format === 'number') {
+        return value.toFixed(decimals);
+    } else if (format === 'integer') {
+        return Math.round(value).toString();
+    }
+    return value.toString();
+}
+
 // Info card functions
 function showInfoCard(properties) {
     const card = document.getElementById('info-card');
     const nameEl = document.getElementById('county-name');
     const statsEl = document.getElementById('county-stats');
 
-    nameEl.textContent = properties.NAME || 'Unknown County';
+    nameEl.textContent = properties.NAME || properties.county_name || 'Unknown County';
 
-    // Build stats HTML
+    // Build stats HTML with null handling
     const stats = [
-        { label: 'Trump 2016', value: (properties.trump_share_2016 || 0).toFixed(1) + '%' },
-        { label: 'Trump 2020', value: (properties.trump_share_2020 || 0).toFixed(1) + '%' },
-        { label: 'Physical Distress', value: (properties.freq_phys_distress_pct || 0).toFixed(1) + '%' },
-        { label: 'Overdose Rate', value: (properties.od_1316_rate || 0).toFixed(1) },
-        { label: 'Rural', value: properties.rural === 1 ? 'Yes' : 'No' }
-    ];
+        { 
+            label: 'Trump 2016', 
+            value: formatValue(properties.trump_share_2016, 'percent'),
+            show: properties.trump_share_2016 !== null && properties.trump_share_2016 !== undefined
+        },
+        { 
+            label: 'Trump 2020', 
+            value: formatValue(properties.trump_share_2020, 'percent'),
+            show: properties.trump_share_2020 !== null && properties.trump_share_2020 !== undefined
+        },
+        { 
+            label: 'Physical Distress', 
+            value: formatValue(properties.freq_phys_distress_pct, 'percent'),
+            show: properties.freq_phys_distress_pct !== null && properties.freq_phys_distress_pct !== undefined
+        },
+        { 
+            label: 'Overdose Rate', 
+            value: formatValue(properties.od_1316_rate, 'number'),
+            show: properties.od_1316_rate !== null && properties.od_1316_rate !== undefined
+        },
+        { 
+            label: 'Rural', 
+            value: properties.rural === 1 ? 'Yes' : (properties.rural === 0 ? 'No' : 'Data suppressed'),
+            show: properties.rural !== null && properties.rural !== undefined
+        },
+        { 
+            label: 'Bivariate Cluster', 
+            value: properties.bv_cluster || 'Not Significant',
+            show: properties.bv_cluster !== null && properties.bv_cluster !== undefined
+        }
+    ].filter(stat => stat.show);  // Only show stats with data
 
-    statsEl.innerHTML = stats.map(stat => `
-        <div class="stat-row">
-            <span class="stat-label">${stat.label}:</span>
-            <span class="stat-value">${stat.value}</span>
-        </div>
-    `).join('');
+    if (stats.length === 0) {
+        statsEl.innerHTML = '<div class="stat-row">No data available for this county</div>';
+    } else {
+        statsEl.innerHTML = stats.map(stat => `
+            <div class="stat-row">
+                <span class="stat-label">${stat.label}:</span>
+                <span class="stat-value">${stat.value}</span>
+            </div>
+        `).join('');
+    }
 
     card.classList.remove('hidden');
 }
