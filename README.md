@@ -32,11 +32,11 @@ Our exploratory spatial data analysis (ESDA) of ~3,143 U.S. counties reveals sig
 ### Strong Spatial Correlations (Moran's I Scatterplots)
 
 <img src="reports/figures/moran_scatter_freq_phys_distress_pct.png" width="400" alt="Moran's I: Physical Distress">
-<img src="reports/figures/moran_scatter_trump_share_2016.png" width="400" alt="Moran's I: Trump Support 2016">
+<img src="reports/figures/moran_scatter_arthritis_pct.png" width="400" alt="Moran's I: Arthritis">
 
 <img src="reports/figures/moran_scatter_depression_pct.png" width="400" alt="Moran's I: Depression">
 
-*Moran scatterplots reveal strong positive spatial autocorrelation (I = 0.43–0.65). The steep slopes indicate that counties with high distress or Trump support tend to be surrounded by similar counties—spatial clustering is highly significant (p < 0.001).*
+*Moran scatterplots reveal strong positive spatial autocorrelation (I = 0.43–0.65) for health distress indicators. The steep slopes indicate that counties with high distress tend to be surrounded by similar counties—spatial clustering is highly significant (p < 0.001).*
 
 ### Local Spatial Patterns (LISA Clusters)
 
