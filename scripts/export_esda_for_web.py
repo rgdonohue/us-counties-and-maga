@@ -14,7 +14,6 @@ import pandas as pd
 import numpy as np
 from libpysal.weights import Queen
 from esda import Moran_Local, Moran_Local_BV
-from giddy.directional import Rose
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -58,68 +57,109 @@ if needs_lisa or needs_bv or needs_hotspot:
         print("\n3. Computing LISA clusters...")
         for var in ['trump_share_2016', 'freq_phys_distress_pct']:
             if var in gdf.columns:
-                valid = gdf[var].notna()
-                if valid.sum() > 100:
-                    print(f"   Computing LISA for {var}...")
+                # Subset to valid rows and align weights matrix
+                valid_mask = gdf[var].notna()
+                valid_indices = gdf.index[valid_mask]
+                
+                if len(valid_indices) > 100:
+                    print(f"   Computing LISA for {var} ({len(valid_indices)} valid counties)...")
                     try:
-                        lisa = Moran_Local(gdf[var].values, w, permutations=999)
+                        # Create subset GeoDataFrame and weights matrix for valid rows only
+                        gdf_subset = gdf.loc[valid_indices].copy()
+                        w_subset = Queen.from_dataframe(gdf_subset, use_index=False)
+                        var_values = gdf_subset[var].values
+                        
+                        # Run LISA on subset
+                        lisa = Moran_Local(var_values, w_subset, permutations=999)
+                        
+                        # Initialize cluster column for all counties
                         gdf[f'{var}_lisa_cluster'] = 'Not Significant'
+                        
+                        # Map results back to full dataframe using valid indices
                         sig = lisa.p_sim < 0.05
-                        gdf.loc[sig & (lisa.q == 1), f'{var}_lisa_cluster'] = 'HH'
-                        gdf.loc[sig & (lisa.q == 2), f'{var}_lisa_cluster'] = 'LH'
-                        gdf.loc[sig & (lisa.q == 3), f'{var}_lisa_cluster'] = 'LL'
-                        gdf.loc[sig & (lisa.q == 4), f'{var}_lisa_cluster'] = 'HL'
+                        gdf.loc[valid_indices[sig & (lisa.q == 1)], f'{var}_lisa_cluster'] = 'HH'
+                        gdf.loc[valid_indices[sig & (lisa.q == 2)], f'{var}_lisa_cluster'] = 'LH'
+                        gdf.loc[valid_indices[sig & (lisa.q == 3)], f'{var}_lisa_cluster'] = 'LL'
+                        gdf.loc[valid_indices[sig & (lisa.q == 4)], f'{var}_lisa_cluster'] = 'HL'
                         print(f"      ✅ {sig.sum()} significant clusters")
                     except Exception as e:
                         print(f"      ⚠️  Error: {e}")
+                        import traceback
+                        traceback.print_exc()
     
     if needs_bv:
         print("\n4. Computing bivariate LISA...")
         if all(col in gdf.columns for col in ['freq_phys_distress_pct', 'trump_share_2016']):
-            valid = gdf[['freq_phys_distress_pct', 'trump_share_2016']].notna().all(axis=1)
-            if valid.sum() > 100:
-                print("   Computing bivariate LISA: distress × Trump...")
+            # Subset to valid rows (both variables must be non-null)
+            valid_mask = gdf[['freq_phys_distress_pct', 'trump_share_2016']].notna().all(axis=1)
+            valid_indices = gdf.index[valid_mask]
+            
+            if len(valid_indices) > 100:
+                print(f"   Computing bivariate LISA: distress × Trump ({len(valid_indices)} valid counties)...")
                 try:
-                    lisa_bv = Moran_Local_BV(
-                        gdf['freq_phys_distress_pct'].values,
-                        gdf['trump_share_2016'].values,
-                        w, permutations=999
-                    )
+                    # Create subset GeoDataFrame and weights matrix for valid rows only
+                    gdf_subset = gdf.loc[valid_indices].copy()
+                    w_subset = Queen.from_dataframe(gdf_subset, use_index=False)
+                    var1_values = gdf_subset['freq_phys_distress_pct'].values
+                    var2_values = gdf_subset['trump_share_2016'].values
+                    
+                    # Run bivariate LISA on subset
+                    lisa_bv = Moran_Local_BV(var1_values, var2_values, w_subset, permutations=999)
+                    
+                    # Initialize cluster column for all counties
                     gdf['bv_cluster'] = 'Not Significant'
+                    
+                    # Map results back to full dataframe using valid indices
                     sig = lisa_bv.p_sim < 0.05
-                    gdf.loc[sig & (lisa_bv.q == 1), 'bv_cluster'] = 'HH'
-                    gdf.loc[sig & (lisa_bv.q == 2), 'bv_cluster'] = 'LH'
-                    gdf.loc[sig & (lisa_bv.q == 3), 'bv_cluster'] = 'LL'
-                    gdf.loc[sig & (lisa_bv.q == 4), 'bv_cluster'] = 'HL'
+                    gdf.loc[valid_indices[sig & (lisa_bv.q == 1)], 'bv_cluster'] = 'HH'
+                    gdf.loc[valid_indices[sig & (lisa_bv.q == 2)], 'bv_cluster'] = 'LH'
+                    gdf.loc[valid_indices[sig & (lisa_bv.q == 3)], 'bv_cluster'] = 'LL'
+                    gdf.loc[valid_indices[sig & (lisa_bv.q == 4)], 'bv_cluster'] = 'HL'
                     print(f"      ✅ {sig.sum()} significant bivariate clusters")
                 except Exception as e:
                     print(f"      ⚠️  Error: {e}")
+                    import traceback
+                    traceback.print_exc()
     
     if needs_hotspot:
         print("\n5. Computing hot spots (Getis-Ord Gi*)...")
         from esda import G_Local
         for var in ['trump_share_2016', 'freq_phys_distress_pct']:
             if var in gdf.columns:
-                valid = gdf[var].notna()
-                if valid.sum() > 100:
-                    print(f"   Computing hot spots for {var}...")
+                # Subset to valid rows and align weights matrix
+                valid_mask = gdf[var].notna()
+                valid_indices = gdf.index[valid_mask]
+                
+                if len(valid_indices) > 100:
+                    print(f"   Computing hot spots for {var} ({len(valid_indices)} valid counties)...")
                     try:
-                        gi = G_Local(gdf[var].values, w, permutations=999)
+                        # Create subset GeoDataFrame and weights matrix for valid rows only
+                        gdf_subset = gdf.loc[valid_indices].copy()
+                        w_subset = Queen.from_dataframe(gdf_subset, use_index=False)
+                        var_values = gdf_subset[var].values
+                        
+                        # Run hot spot analysis on subset
+                        gi = G_Local(var_values, w_subset, permutations=999)
+                        
+                        # Initialize hotspot column for all counties
                         gdf[f'{var}_hotspot_conf'] = 'Not Significant'
+                        
                         # Get Gi* values (use Gi attribute or z_sim for direction)
                         gi_values = gi.Gi if hasattr(gi, 'Gi') else gi.z_sim
+                        
+                        # Map results back to full dataframe using valid indices
                         # 99% confidence
                         sig_99 = gi.p_sim < 0.01
-                        gdf.loc[sig_99 & (gi_values > 0), f'{var}_hotspot_conf'] = 'Hot Spot - 99% Conf'
-                        gdf.loc[sig_99 & (gi_values < 0), f'{var}_hotspot_conf'] = 'Cold Spot - 99% Conf'
+                        gdf.loc[valid_indices[sig_99 & (gi_values > 0)], f'{var}_hotspot_conf'] = 'Hot Spot - 99% Conf'
+                        gdf.loc[valid_indices[sig_99 & (gi_values < 0)], f'{var}_hotspot_conf'] = 'Cold Spot - 99% Conf'
                         # 95% confidence
                         sig_95 = (gi.p_sim < 0.05) & (gi.p_sim >= 0.01)
-                        gdf.loc[sig_95 & (gi_values > 0), f'{var}_hotspot_conf'] = 'Hot Spot - 95% Conf'
-                        gdf.loc[sig_95 & (gi_values < 0), f'{var}_hotspot_conf'] = 'Cold Spot - 95% Conf'
+                        gdf.loc[valid_indices[sig_95 & (gi_values > 0)], f'{var}_hotspot_conf'] = 'Hot Spot - 95% Conf'
+                        gdf.loc[valid_indices[sig_95 & (gi_values < 0)], f'{var}_hotspot_conf'] = 'Cold Spot - 95% Conf'
                         # 90% confidence
                         sig_90 = (gi.p_sim < 0.10) & (gi.p_sim >= 0.05)
-                        gdf.loc[sig_90 & (gi_values > 0), f'{var}_hotspot_conf'] = 'Hot Spot - 90% Conf'
-                        gdf.loc[sig_90 & (gi_values < 0), f'{var}_hotspot_conf'] = 'Cold Spot - 90% Conf'
+                        gdf.loc[valid_indices[sig_90 & (gi_values > 0)], f'{var}_hotspot_conf'] = 'Hot Spot - 90% Conf'
+                        gdf.loc[valid_indices[sig_90 & (gi_values < 0)], f'{var}_hotspot_conf'] = 'Cold Spot - 90% Conf'
                         print(f"      ✅ Hot spot analysis complete")
                     except Exception as e:
                         print(f"      ⚠️  Error: {e}")
@@ -175,9 +215,22 @@ try:
 except Exception as e:
     print(f"   ⚠️  Could not simplify: {e}")
 
-# Round numeric columns
+# Round numeric columns (exclude categorical integers)
 numeric_cols = web_gdf.select_dtypes(include=[np.number]).columns
-web_gdf[numeric_cols] = web_gdf[numeric_cols].round(2)
+# Exclude categorical integer fields from rounding (they should remain integers)
+categorical_int_cols = ['rucc', 'rural']  # fips is string, not numeric
+cols_to_round = [c for c in numeric_cols if c not in categorical_int_cols]
+web_gdf[cols_to_round] = web_gdf[cols_to_round].round(2)
+
+# Ensure categorical integers remain integers (not floats from previous operations)
+for cat_col in categorical_int_cols:
+    if cat_col in web_gdf.columns:
+        if web_gdf[cat_col].dtype in [np.float64, np.float32]:
+            # Convert to nullable integer (handles NaN)
+            web_gdf[cat_col] = web_gdf[cat_col].astype('Int64')
+        elif pd.api.types.is_integer_dtype(web_gdf[cat_col]):
+            # Already integer, ensure it stays that way
+            pass
 
 # Export
 output_path = web_assets / "counties_esda.geojson"
