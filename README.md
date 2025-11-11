@@ -17,7 +17,9 @@ Exploring how community distress metrics (overdose mortality, physical pain, lif
 
 ## Key Findings from Spatial Analysis
 
-Our exploratory spatial data analysis (ESDA) reveals significant geographic clustering in both community distress and Trump voting patterns:
+> **⚠️ PRELIMINARY ANALYSIS**: These data graphics and statistical findings are from early-stage exploratory analysis and should be considered preliminary. Full model specifications, robustness checks, and peer review are ongoing. County-level associations do not imply individual-level behavior (ecological fallacy).
+
+Our exploratory spatial data analysis (ESDA) reveals significant geographic clustering in both community distress and Trump voting patterns, with strong positive correlations:
 
 <div align="center">
 
@@ -26,6 +28,15 @@ Our exploratory spatial data analysis (ESDA) reveals significant geographic clus
 <img src="reports/figures/bivariate_lisa_freq_phys_distress_pct_trump_share_2016.png" width="600" alt="Bivariate LISA: Physical Distress and Trump Support">
 
 *Red (HH) clusters show counties with high physical distress **and** high Trump support, concentrated in Appalachia and parts of the rural South. Blue (LL) clusters indicate low distress, low Trump support.*
+
+### Strong Spatial Correlations (Moran's I Scatterplots)
+
+<img src="reports/figures/moran_scatter_freq_phys_distress_pct.png" width="400" alt="Moran's I: Physical Distress">
+<img src="reports/figures/moran_scatter_trump_share_2016.png" width="400" alt="Moran's I: Trump Support 2016">
+
+<img src="reports/figures/moran_scatter_depression_pct.png" width="400" alt="Moran's I: Depression">
+
+*Moran scatterplots reveal strong positive spatial autocorrelation (I = 0.43–0.65). The steep slopes indicate that counties with high distress or Trump support tend to be surrounded by similar counties—spatial clustering is highly significant (p < 0.001).*
 
 ### Local Spatial Patterns (LISA Clusters)
 
@@ -42,7 +53,9 @@ Our exploratory spatial data analysis (ESDA) reveals significant geographic clus
 
 </div>
 
-**Global Moran's I** indicates strong positive spatial autocorrelation (I ≈ 0.43-0.65) for both distress metrics and Trump support, confirming that "place matters"—neighboring counties exhibit similar patterns.
+**Key Takeaway**: The data show strong positive spatial autocorrelation (Moran's I ≈ 0.43-0.65) for both distress metrics and Trump support, with compelling visual evidence of co-location in Appalachian and rural Southern counties. These patterns are statistically significant and geographically clustered—"place matters" in understanding both community health and voting behavior.
+
+> **Note**: While these correlations are striking, they represent preliminary exploratory findings. Formal regression models with demographic controls, sensitivity analyses, and peer review are necessary before drawing causal inferences.
 
 ## Quickstart (Synthetic Data)
 
