@@ -17,9 +17,9 @@ Exploring how community distress metrics (overdose mortality, physical pain, lif
 
 ## Key Findings from Spatial Analysis
 
-> **⚠️ PRELIMINARY ANALYSIS**: These data graphics and statistical findings are from early-stage exploratory analysis and should be considered preliminary. Full model specifications, robustness checks, and peer review are ongoing. County-level associations do not imply individual-level behavior (ecological fallacy).
+> **⚠️ PRELIMINARY ANALYSIS**: These data graphics and statistical findings are from early-stage exploratory analysis of real data (downloaded per the Data Acquisition Checklist below) and should be considered preliminary. The repository ships with synthetic sample data for testing; **these findings are NOT reproducible from the sample data alone**. Full model specifications, robustness checks, and peer review are ongoing. County-level associations do not imply individual-level behavior (ecological fallacy).
 
-Our exploratory spatial data analysis (ESDA) reveals significant geographic clustering in both community distress and Trump voting patterns, with strong positive correlations:
+Our exploratory spatial data analysis (ESDA) of ~3,143 U.S. counties reveals significant geographic clustering in both community distress and Trump voting patterns, with strong positive correlations:
 
 <div align="center">
 
@@ -97,7 +97,7 @@ us-counties-and-trump/
 | CDC PLACES (2023) | CDC PLACES | Automated CSV download | `data/raw/cdc_places/` |
 | USDA RUCC (2023) | USDA ERS | Automated XLSX download | `data/raw/usda/` |
 | County Health Rankings (2016, 2024) | University of Wisconsin CHR&R | Manual download | `data/raw/analytic_data*.csv` |
-| ACS demographics | Census API | API pull (requires `CENSUS_API_KEY`) | `data/raw/census/` |
+| ACS demographics (planned) | Census API | API pull (requires `CENSUS_API_KEY`) | `data/raw/census/` (not yet implemented) |
 
 Run the CLI catalog check:
 
@@ -111,7 +111,7 @@ The command reports ✅/⚠️ status for each asset and highlights missing file
 python scripts/run_pipeline.py build-data
 ```
 
-The pipeline merges shapefiles, elections, CDC WONDER, CDC PLACES, RUCC, and ACS data, computes derived metrics (Trump shift, overdose change, distress composites), writes `data/processed/counties_analysis.geojson`, and updates `web/assets/` for the interactive map.
+The pipeline merges shapefiles, elections, CDC WONDER, CDC PLACES, RUCC, and County Health Rankings data, computes derived metrics (Trump shift, overdose change, distress composites), writes `data/processed/counties_analysis.geojson`, and updates `web/assets/` for the interactive map. (Note: ACS integration is planned but not yet implemented.)
 
 ## Notebook & Modeling Workflow
 

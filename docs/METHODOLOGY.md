@@ -23,8 +23,9 @@
 ## Data Collection
 
 ### Unit of Analysis
-- U.S. counties and county-equivalents (n ≈ 3,100)
-- Excludes Alaska boroughs, territories, and independent cities for consistency
+- U.S. counties and county-equivalents (n ≈ 3,143)
+- Current implementation filters out Alaska (STATEFP 02), Hawaii (STATEFP 15), and territories (STATEFP > 56)
+- Note: Virginia independent cities and other county-equivalents are currently included (filtering refinement planned)
 
 ### Temporal Framework
 - **Baseline Period**: 2010-2015 (for structural indicators)
@@ -62,14 +63,14 @@
    - Disability benefit recipiency rate
 
 4. **Life expectancy**:
-   - County life expectancy at birth
-   - Change in life expectancy 2000-2015
+   - County life expectancy at birth (from County Health Rankings)
+   - Note: Temporal change in life expectancy not yet implemented
 
-#### Control Variables
-- **Demographic**: Age structure, race/ethnicity composition
-- **Socioeconomic**: Education (% BA+), median income, unemployment rate
-- **Geographic**: Rural-Urban Continuum Code, region fixed effects
-- **Economic structure**: Manufacturing dependence, mining dependence
+#### Control Variables (Planned)
+- **Demographic**: Age structure, race/ethnicity composition (ACS integration pending)
+- **Socioeconomic**: Education (% BA+), median income, unemployment rate (ACS integration pending)
+- **Geographic**: Rural-Urban Continuum Code (implemented), region fixed effects
+- **Economic structure**: Manufacturing dependence, mining dependence (data sources TBD)
 
 ## Analytical Framework
 
@@ -279,7 +280,7 @@ Preliminary stratified analyses suggest the distress→Trump relationship varies
 
 4. **Missing Data**: CDC suppresses data for small counties, potentially biasing our sample toward larger, less rural counties.
 
-5. **Multiple Comparisons**: With 3,100+ counties, some significant clusters are expected by chance. We apply FDR corrections but results should still be interpreted cautiously.
+5. **Multiple Comparisons**: With 3,100+ counties, some significant clusters are expected by chance. Current LISA analyses use p < 0.05 without multiple testing correction; FDR adjustment is planned for publication.
 
 ### Next Steps
 
@@ -364,7 +365,7 @@ Before publication, the following analyses are required:
 
 2. **Multiple Testing**
    - Many counties tested simultaneously
-   - FDR correction applied to LISA
+   - FDR correction planned but not yet implemented
 
 3. **Effect Heterogeneity**
    - Relationships may vary by region
