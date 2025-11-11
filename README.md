@@ -45,12 +45,6 @@ Our exploratory spatial data analysis (ESDA) reveals significant geographic clus
 
 *Local Indicators of Spatial Association reveal statistically significant hot spots (HH) and cold spots (LL) for both variables.*
 
-### Hot Spot Analysis (Getis-Ord Gi*)
-
-<img src="reports/figures/hotspot_trump_share_2016.png" width="600" alt="Hot Spots: Trump Support">
-
-*Hot spot analysis identifies regions where Trump support is significantly higher than expected, accounting for spatial autocorrelation.*
-
 </div>
 
 **Key Takeaway**: The data show strong positive spatial autocorrelation (Moran's I ≈ 0.43-0.65) for both distress metrics and Trump support, with compelling visual evidence of co-location in Appalachian and rural Southern counties. These patterns are statistically significant and geographically clustered—"place matters" in understanding both community health and voting behavior.
